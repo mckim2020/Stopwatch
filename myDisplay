@@ -1,0 +1,26 @@
+void displayCount(int cnt) {
+	int x[5], i;
+	
+	if (cnt > 99*60*10+59*10+9) // When exceeding max time by MM:SS:X = 99:59:9
+		cnt = 0;
+	if (cnt < 0) 
+		cnt = 99*60*10+59*10+9; 
+		
+	x[0] = cnt%10;       // x: 100 ms
+	x[1] = (cnt/10)%10;  // s1: 1 sec
+	x[2] = (cnt/100)%6;  // s2: 10 sec
+	x[3] = (cnt/600)%10; // m1: 1 min
+	x[4] = (cnt/6000)%10; // m2: 10 min
+	
+	// For LED display only
+	for  (i=0; i<5; i++) {
+		PORTA = FND[x[i]]; // Number to display on the segment
+		PORTC = FNDPOS[i]; // Position for segment
+		
+	
+	// For LCD display (disabled for now) -> Discard this part for fast compiling!
+	printf("%d%d : %d%d : %d", x[4], x[3], x[2], x[1], x[0]); 
+	
+	_delay_us(50);
+	}
+}
