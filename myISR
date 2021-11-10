@@ -24,7 +24,7 @@ ISR(TIMER1_COMPA_vect) {
     
 	if (reset) {
 		count = 0;
-		reset = 0;     // Automatically sets reset to zero
+		reset = 0;    // Automatically sets reset to zero
 	}
 
 	_delay_us(50); 
