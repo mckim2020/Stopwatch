@@ -1,0 +1,20 @@
+// Main function
+int main(void) {
+	InitCalculator();
+
+	cli();	// Disable Global Interrupt
+	ClearLCD();
+	
+	setPort(); // Port setting
+	setTimer(); // Timer setting
+	setIntrpt(); // Interrupt setting
+
+	sei();	// Enable Global Interrupt
+	
+	while (1) {
+		displayCount(count);
+	}
+
+	
+	return 0;
+}
