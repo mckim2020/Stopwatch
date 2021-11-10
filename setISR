@@ -1,0 +1,31 @@
+// ISR ON/OFF by PORT4
+ISR(INT4_vect) {
+	if (start)
+		start = 0;
+	else if (~start)
+		start = 1;
+	
+	_delay_us(50);
+}
+
+// ISR RESET by PORT5
+ISR(INT5_vect) {
+	reset = 1;
+
+	_delay_us(50);
+}
+
+// ISR MATCH (called every 100ms)
+ISR(TIMER1_COMPA_vect) {
+	TCNT1 = 0;
+	
+	if (start)
+		count++;
+    
+	if (reset) {
+		count = 0;
+		reset = 0;     // Automatically sets reset to zero
+	}
+
+	_delay_us(50); 
+}
