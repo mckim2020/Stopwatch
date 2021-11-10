@@ -1,0 +1,140 @@
+#define F_CPU 		16000000UL
+#define MCU_XTAL 	F_CPU
+
+#include <avr/io.h>
+#include <stdio.h>
+#include <stdbool.h>
+#include <util/delay.h>
+#include <avr/interrupt.h>
+#include "firmware.h"
+
+volatile int start, reset, count = 0;
+
+unsigned char FND[10] = {0x3F, 0x06, 0x5B, 0x4F, 0x66, 0x6D, 0x7D, 0x07, 0x7F, 0x67}; // Using 0~9, not A, B, C, ...
+unsigned char FNDPOS[5] = {0x01, 0x02, 0x04, 0x08, 0x10}; // mm:ss:x -> 5 segments
+
+// How to interrupt manually
+// You have to go through Debug -> I/O -> PINE and manually click 4, 5 bits for external interrupt simulation
+// in order to interrupt INT4 (start/stop) and INT5 (reset) respectively.
+
+// ISR ON/OFF by PORT4
+ISR(INT4_vect) {
+	if (start)
+		start = 0;
+	else if (~start)
+		start = 1;
+	
+	_delay_us(50);
+}
+
+// ISR RESET by PORT5
+ISR(INT5_vect) {
+	reset = 1;
+
+	_delay_us(50);
+}
+
+// ISR MATCH (called every 100ms)
+ISR(TIMER1_COMPA_vect) {
+	TCNT1 = 0;
+	
+	if (start == 1)
+		count++;
+		
+	if (reset == 1) {
+		count = 0;
+		reset = 0;     // Automatically sets reset to zero
+	}
+
+	_delay_us(50); 
+}
+
+
+// Setting button input 
+// For DDRA, 0:input, 1:output
+void setPort() {
+	DDRA = 0xFF;    // Output for 7-segment expression 
+	DDRC = 0xFF;    // Output for segment position -> To prevent 4, 5 bit might be used as input (set to zero if DDRC = 0x1F), 
+
+	DDRE = 0x30;    // Input for INT4 (start/stop) and INT5 (reset)
+	PORTE &= ~0x30; // Input port setting
+	
+	_delay_us(50); 
+}
+
+// Setting the timer
+void setTimer() {
+	TCCR1B &= ~((1 << 2) | (1 << 1) | (1)); // Clock OFF
+	TCNT1 = 0;                              // Reset counter value
+	OCR1A = 25000;                          // Counter target value
+	TIMSK |= (1 << 4);                      // Enable compare match interrupt
+	TCCR1B |= ((0 << 2) | (1 << 1) | (1));  // Pre-scale CLK/64 s/t 16M/64/10 = 25000
+	
+	_delay_us(50);
+}
+
+// Setting interrupt 
+void setIntrpt() {
+	EIMSK = 0x00;
+	EICRA = 0x00;        // Not using INT3:0
+	EICRB = 0x0A;        // Falling edge of INT4 and INT5 (Low input trigger at PORTs)
+	EIMSK = 0x30;        // Using INT4 and INT5
+	// TIMSK = (1<<OCIE1A); // Allow Timer/Counter 1 match interrupt
+	EIFR = 0xFF;
+	
+	_delay_us(50);
+}
+
+// Display count in decimal form
+void displayCount(int cnt) {
+	int x[5], i;
+	
+	if (cnt > 99*60*10+59*10+9) // When exceeding max time by MM:SS:X = 99:59:9
+		cnt = 0;
+	if (cnt < 0) 
+		cnt = 99*60*10+59*10+9; 
+		
+	x[0] = cnt%10;       // x: 100 ms
+	x[1] = (cnt/10)%10;  // s1: 1 sec
+	x[2] = (cnt/100)%6;  // s2: 10 sec
+	x[3] = (cnt/600)%10; // m1: 1 min
+	x[4] = (cnt/6000)%10; // m2: 10 min
+	
+	// For LED display only
+	for  (i=0; i<5; i++) {
+		PORTA = FND[x[i]]; // Number to display on the segment
+		PORTC = FNDPOS[i]; // Position for segment
+		
+	
+	// For LCD display (disabled for now) -> Discard this part for fast compiling!
+	printf("%d%d : %d%d : %d", x[4], x[3], x[2], x[1], x[0]); 
+	
+	_delay_us(50);
+	}
+}
+
+
+// Main function
+int main(void) {
+	InitCalculator();
+
+	cli();	// Disable Global Interrupt
+	ClearLCD();
+	
+	setPort(); // Port setting
+	setTimer(); // Timer setting
+	setIntrpt(); // Interrupt setting
+
+	sei();	// Enable Global Interrupt
+	
+	while (1) {
+		displayCount(count);
+	}
+
+	
+	return 0;
+}
+
+/*----------------------------------------------------------*/
+
+
