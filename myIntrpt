@@ -1,0 +1,11 @@
+// Setting interrupt 
+void setIntrpt() {
+	EIMSK = 0x00;
+	EICRA = 0x00;        // Not using INT3:0
+	EICRB = 0x0A;        // Falling edge of INT4 and INT5 (Low input trigger at PORTs)
+	EIMSK = 0x30;        // Using INT4 and INT5
+	// TIMSK = (1<<OCIE1A); // Allow Timer/Counter 1 match interrupt
+	EIFR = 0xFF;
+	
+	_delay_us(50);
+}
