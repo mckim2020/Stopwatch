@@ -1,0 +1,11 @@
+// Setting button input 
+// For DDRA, 0:input, 1:output
+void setPort() {
+	DDRA = 0xFF;    // Output for 7-segment expression 
+	DDRC = 0xFF;    // Output for segment position -> To prevent 4, 5 bit might be used as input (set to zero if DDRC = 0x1F), 
+
+	DDRE = 0x30;    // Input for INT4 (start/stop) and INT5 (reset)
+	PORTE &= ~0x30; // Input port setting
+	
+	_delay_us(50); 
+}
