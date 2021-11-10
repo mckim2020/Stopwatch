@@ -1,0 +1,10 @@
+// Setting the timer
+void setTimer() {
+	TCCR1B &= ~((1 << 2) | (1 << 1) | (1)); // Clock OFF
+	TCNT1 = 0;                              // Reset counter value
+	OCR1A = 25000;                          // Counter target value
+	TIMSK |= (1 << 4);                      // Enable compare match interrupt
+	TCCR1B |= ((0 << 2) | (1 << 1) | (1));  // Pre-scale CLK/64 s/t 16M/64/10 = 25000
+	
+	_delay_us(50);
+}
